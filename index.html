@@ -4,14 +4,121 @@
 <meta charset="UTF-8">
 <title>Interactive Periodic Table – full 118 elements</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- ========================================================= -->
+<!--                       CSS STYLING                         -->
+<!-- ========================================================= -->
 <style>
-/* [--- unchanged CSS — see previous message ---] */
+/* ===== basic layout ===== */
+body{margin:0;padding:10px;background:transparent;color:#fff;
+     font-family:Arial,Helvetica,sans-serif;font-size:13px;}
+h1{margin:0 0 .75rem;text-align:center;font-size:1.1rem;}
+
+/* ===== search bar ===== */
+.search-container{text-align:center;margin-bottom:1rem;}
+#element-search{
+  font-size:.9rem;padding:6px 10px;width:230px;
+  border-radius:8px;border:1px solid #fff;background:#1A1A1A;color:#fff;
+}
+
+/* ===== block buttons ===== */
+.block-buttons{text-align:center;margin-bottom:1rem;}
+.block-buttons button{
+  font-size:.9rem;padding:6px 10px;margin:0 4px;cursor:pointer;
+  background:#1A1A1A;color:#fff;border:1px solid #fff;
+  border-radius:10px;box-shadow:0 0 5px 2px rgba(255,255,255,.4);
+  transition:filter .3s ease;
+}
+.block-buttons button:hover{filter:brightness(120%);}
+
+/* ===== tables ===== */
+.table-container{max-width:none;overflow-x:visible;margin:0 auto 1rem;}
+table{border-collapse:separate;border-spacing:5px;margin:0 auto;}
+th{background:none;border:none;color:#fff;font-weight:normal;text-align:center;padding:2px;}
+th.group-header,th.period-label{font-size:1rem;cursor:pointer;transition:background-color .2s ease;}
+td{width:3rem;height:4rem;background:transparent;border:none;vertical-align:middle;text-align:center;}
+td.empty{background:transparent;}
+
+.sub-table-title{text-align:center;margin:.9rem 0 .3rem;font-size:.9rem;}
+
+/* ===== element block (3-D look) ===== */
+.element-block{
+  position:relative;
+  width:100%;
+  height:100%;
+  box-sizing:border-box;
+  border-radius:6px;
+  background:linear-gradient(145deg,#ececec 0%,#bababa 100%);
+  border:1px solid #000;
+  box-shadow:2px 2px 4px rgba(0,0,0,.35),
+             -2px -2px 4px rgba(255,255,255,.65),
+             inset 0 1px 0 rgba(255,255,255,.7);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  padding:3px;
+  transition:transform .3s ease,box-shadow .3s ease,opacity .3s ease;
+}
+.element-block::before,
+.element-block::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+}
+.element-block::before{
+  background:linear-gradient(130deg,
+              rgba(255,255,255,.32) 0%,
+              rgba(255,255,255,.05) 45%,
+              rgba(0,0,0,.07) 55%,
+              rgba(0,0,0,.28) 100%);
+  mix-blend-mode:overlay;
+}
+.element-block::after{box-shadow:inset 0 0 6px rgba(0,0,0,.25);}
+.element-block:hover{
+  transform:translateY(-4px) scale(1.06);
+  box-shadow:4px 6px 10px rgba(0,0,0,.45),
+             -2px -2px 6px rgba(255,255,255,.65),
+             inset 0 2px 0 rgba(255,255,255,.8);
+}
+
+.mass-num{font-size:.75rem;font-weight:bold;margin-top:2px;}
+.symbol-box{
+  background:linear-gradient(150deg,#ffffff 0%,#d7d7d7 100%);
+  border:1px solid #000;border-radius:4px;padding:2px;min-width:2rem;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),
+             inset 0 -1px 2px rgba(0,0,0,.25);
+}
+.symbol{font-size:.8rem;margin:0;line-height:1.1;font-weight:bold;color:#000;}
+.element-name{margin:0;font-size:.6rem;color:#000;opacity:.85;}
+.atomic-num{font-size:.65rem;color:#444;margin-bottom:3px;}
+
+/* ===== hover colour by block ===== */
+.element-block[data-spdf="s"]:hover{box-shadow:0 0 10px 4px rgba(255,255,0,.5);transform:translateY(-4px) scale(1.08);}
+.element-block[data-spdf="p"]:hover,
+.element-block[data-spdf="f"]:hover{box-shadow:0 0 10px 4px rgba(0,0,255,.5);transform:translateY(-4px) scale(1.08);}
+.element-block[data-spdf="d"]:hover{box-shadow:0 0 10px 4px rgba(255,0,0,.5);transform:translateY(-4px) scale(1.08);}
+
+/* ===== tooltip ===== */
+#tooltip{
+  position:absolute;pointer-events:none;z-index:9999;
+  background:rgba(34,34,34,.8);color:#fff;border:1px solid #444;
+  padding:5px 8px;border-radius:4px;font-size:.75rem;
+  opacity:0;transform:translate(-50%,-50%) scale(.8);
+  transition:opacity .2s ease,transform .2s ease;
+}
+#tooltip.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+
+/* ===== search highlight ===== */
+.search-highlight{
+  box-shadow:0 0 14px 6px rgba(255,165,0,.85)!important;
+  transform:translateY(-4px) scale(1.25)!important;
+  z-index:1;
+}
 </style>
 </head>
+
 <body>
 <div class="search-container">
-  <input id="element-search" type="text"
-         placeholder="Search element (name or symbol)…">
+  <input id="element-search" type="text" placeholder="Search element (name or symbol)…">
 </div>
 
 <div class="block-buttons">
@@ -32,10 +139,12 @@
 
 <div id="tooltip"></div>
 
-<!-- =============   JavaScript   ============= -->
+<!-- ========================================================= -->
+<!--                  JAVASCRIPT (ES-2015)                      -->
+<!-- ========================================================= -->
 <script>
 /* ---------- utilities ---------- */
-var tooltip   = document.getElementById("tooltip");
+var tooltip     = document.getElementById("tooltip");
 var activeBlock = null, mainTable;
 
 function toRoman(n){
@@ -56,9 +165,9 @@ function spdf(z,g){
        : "d";
 }
 
-/* ---------- element data (118) ---------- */
+/* ---------- full data (118) ---------- */
 var E = [
-/* — first 36 (H-Kr) — */
+/* — H → Kr — */
 {Z:1,sym:"H",name:"Hydrogen",mass:"1.0",g:1,p:1},
 {Z:2,sym:"He",name:"Helium",mass:"4.0",g:18,p:1},
 {Z:3,sym:"Li",name:"Lithium",mass:"6.9",g:1,p:2},
@@ -95,7 +204,7 @@ var E = [
 {Z:34,sym:"Se",name:"Selenium",mass:"79.0",g:16,p:4},
 {Z:35,sym:"Br",name:"Bromine",mass:"79.9",g:17,p:4},
 {Z:36,sym:"Kr",name:"Krypton",mass:"83.8",g:18,p:4},
-/* — 37–118 exactly as before … — */
+/* — Rb → Rn — */
 {Z:37,sym:"Rb",name:"Rubidium",mass:"85.5",g:1,p:5},
 {Z:38,sym:"Sr",name:"Strontium",mass:"87.6",g:2,p:5},
 {Z:39,sym:"Y",name:"Yttrium",mass:"88.9",g:3,p:5},
@@ -114,6 +223,7 @@ var E = [
 {Z:52,sym:"Te",name:"Tellurium",mass:"127.6",g:16,p:5},
 {Z:53,sym:"I",name:"Iodine",mass:"126.9",g:17,p:5},
 {Z:54,sym:"Xe",name:"Xenon",mass:"131.3",g:18,p:5},
+/* — Cs → Og — */
 {Z:55,sym:"Cs",name:"Cesium",mass:"132.9",g:1,p:6},
 {Z:56,sym:"Ba",name:"Barium",mass:"137.3",g:2,p:6},
 {Z:57,sym:"La",name:"Lanthanum",mass:"138.9",g:3,p:6},
@@ -218,11 +328,11 @@ function elementBlock(el){
   return blk;
 }
 
-/* ---------- build the three tables ---------- */
+/* ---------- table builders ---------- */
 function buildMain(){
   mainTable = document.getElementById("main-table");
 
-  /* column headers */
+  /* header row */
   var hdr = document.createElement("tr");
   hdr.appendChild(document.createElement("th"));
   for(var g=1; g<=18; g++){
@@ -266,15 +376,11 @@ function buildRow(list, tableId){
   document.getElementById(tableId).appendChild(row);
 }
 
-/* helpers for data search (IE-friendly) */
-function findByZ(z){
-  for(var i=0;i<E.length;i++) if(E[i].Z===z) return E[i];
-  return null;
-}
+/* helpers */
+function findByZ(z){ for(var i=0;i<E.length;i++) if(E[i].Z===z) return E[i]; }
 function findByPG(p,g){
   for(var i=0;i<E.length;i++)
     if(E[i].p===p && E[i].g===g) return E[i];
-  return null;
 }
 
 /* ---------- hover helpers ---------- */
@@ -335,23 +441,17 @@ function search(){
       b.style.opacity="0.2";
     }
   }
-  if(first){
-    first.scrollIntoView({block:"center",inline:"center",behavior:"smooth"});
-  }
+  if(first){ first.scrollIntoView({block:"center",inline:"center",behavior:"smooth"}); }
 }
 
 /* ---------- build on load ---------- */
 buildMain();
 buildRow(range(58,71),"lanthanide-table");   // 58…71 inclusive
-buildRow(range(90,103),"actinide-table");    // 90…103 inclusive
+buildRow(range(90,103),"actinide-table");   // 90…103 inclusive
 document.getElementById("element-search").addEventListener("input",search);
 
 /* small utility */
-function range(a,b){
-  var arr=[];
-  for(var i=a;i<=b;i++) arr.push(i);
-  return arr;
-}
+function range(a,b){ var arr=[]; for(var i=a;i<=b;i++) arr.push(i); return arr; }
 </script>
 </body>
 </html>
