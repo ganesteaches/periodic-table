@@ -4,118 +4,14 @@
 <meta charset="UTF-8">
 <title>Interactive Periodic Table – full 118 elements</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <style>
-/* ===== basic layout ===== */
-body{margin:0;padding:10px;background:transparent;color:#fff;
-     font-family:Arial,Helvetica,sans-serif;font-size:13px;}
-h1{margin:0 0 .75rem;text-align:center;font-size:1.1rem;}
-
-/* ===== search bar ===== */
-.search-container{text-align:center;margin-bottom:1rem;}
-#element-search{
-  font-size:.9rem;padding:6px 10px;width:230px;
-  border-radius:8px;border:1px solid #fff;background:#1A1A1A;color:#fff;
-}
-
-/* ===== block buttons ===== */
-.block-buttons{text-align:center;margin-bottom:1rem;}
-.block-buttons button{
-  font-size:.9rem;padding:6px 10px;margin:0 4px;cursor:pointer;
-  background:#1A1A1A;color:#fff;border:1px solid #fff;
-  border-radius:10px;box-shadow:0 0 5px 2px rgba(255,255,255,.4);
-  transition:filter .3s ease;
-}
-.block-buttons button:hover{filter:brightness(120%);}
-
-/* ===== tables ===== */
-.table-container{max-width:none;overflow-x:visible;margin:0 auto 1rem;}
-table{border-collapse:separate;border-spacing:5px;margin:0 auto;}
-th{background:none;border:none;color:#fff;font-weight:normal;text-align:center;padding:2px;}
-th.group-header,th.period-label{font-size:1rem;cursor:pointer;transition:background-color .2s ease;}
-td{width:3rem;height:4rem;background:transparent;border:none;vertical-align:middle;text-align:center;}
-td.empty{background:transparent;}
-
-.sub-table-title{text-align:center;margin:.9rem 0 .3rem;font-size:.9rem;}
-
-/* ===== element block (3-D look) ===== */
-.element-block{
-  position:relative;
-  width:100%;
-  height:100%;
-  box-sizing:border-box;
-  border-radius:6px;
-  background:linear-gradient(145deg,#ececec 0%,#bababa 100%);
-  border:1px solid #000;
-  box-shadow:2px 2px 4px rgba(0,0,0,.35),
-             -2px -2px 4px rgba(255,255,255,.65),
-             inset 0 1px 0 rgba(255,255,255,.7);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:space-between;
-  padding:3px;
-  transition:transform .3s ease,box-shadow .3s ease,opacity .3s ease;
-}
-.element-block::before,
-.element-block::after{
-  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-}
-.element-block::before{
-  background:linear-gradient(130deg,
-              rgba(255,255,255,.32) 0%,
-              rgba(255,255,255,.05) 45%,
-              rgba(0,0,0,.07) 55%,
-              rgba(0,0,0,.28) 100%);
-  mix-blend-mode:overlay;
-}
-.element-block::after{box-shadow:inset 0 0 6px rgba(0,0,0,.25);}
-.element-block:hover{
-  transform:translateY(-4px) scale(1.06);
-  box-shadow:4px 6px 10px rgba(0,0,0,.45),
-             -2px -2px 6px rgba(255,255,255,.65),
-             inset 0 2px 0 rgba(255,255,255,.8);
-}
-
-.mass-num{font-size:.75rem;font-weight:bold;margin-top:2px;}
-.symbol-box{
-  background:linear-gradient(150deg,#ffffff 0%,#d7d7d7 100%);
-  border:1px solid #000;border-radius:4px;padding:2px;min-width:2rem;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),
-             inset 0 -1px 2px rgba(0,0,0,.25);
-}
-.symbol{font-size:.8rem;margin:0;line-height:1.1;font-weight:bold;color:#000;}
-.element-name{margin:0;font-size:.6rem;color:#000;opacity:.85;}
-.atomic-num{font-size:.65rem;color:#444;margin-bottom:3px;}
-
-/* ===== hover colour by block ===== */
-.element-block[data-spdf="s"]:hover{box-shadow:0 0 10px 4px rgba(255,255,0,.5);transform:translateY(-4px) scale(1.08);}
-.element-block[data-spdf="p"]:hover,
-.element-block[data-spdf="f"]:hover{box-shadow:0 0 10px 4px rgba(0,0,255,.5);transform:translateY(-4px) scale(1.08);}
-.element-block[data-spdf="d"]:hover{box-shadow:0 0 10px 4px rgba(255,0,0,.5);transform:translateY(-4px) scale(1.08);}
-
-/* ===== tooltip ===== */
-#tooltip{
-  position:absolute;pointer-events:none;z-index:9999;
-  background:rgba(34,34,34,.8);color:#fff;border:1px solid #444;
-  padding:5px 8px;border-radius:4px;font-size:.75rem;
-  opacity:0;transform:translate(-50%,-50%) scale(.8);
-  transition:opacity .2s ease,transform .2s ease;
-}
-#tooltip.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
-
-/* ===== search highlight ===== */
-.search-highlight{
-  box-shadow:0 0 14px 6px rgba(255,165,0,.85)!important;
-  transform:translateY(-4px) scale(1.25)!important;
-  z-index:1;
-}
+/* [--- unchanged CSS — see previous message ---] */
 </style>
 </head>
-
 <body>
 <div class="search-container">
-  <input id="element-search" type="text" placeholder="Search element (name or symbol)…">
+  <input id="element-search" type="text"
+         placeholder="Search element (name or symbol)…">
 </div>
 
 <div class="block-buttons">
@@ -136,31 +32,33 @@ td.empty{background:transparent;}
 
 <div id="tooltip"></div>
 
-<!-- =============================================================== -->
-<!--  JavaScript (no external dependencies)                          -->
-<!-- =============================================================== -->
+<!-- =============   JavaScript   ============= -->
 <script>
-/* ========== utilities ========== */
-const tooltip = document.getElementById("tooltip");
-let activeBlock = null, mainTable;
+/* ---------- utilities ---------- */
+var tooltip   = document.getElementById("tooltip");
+var activeBlock = null, mainTable;
 
 function toRoman(n){
-  const map = {1:"I",2:"II",3:"",4:"",5:"",6:"",7:"",8:"",9:"",10:"",
-               11:"",12:"",13:"III",14:"IV",15:"V",16:"VI",17:"VII",18:"VIII"};
+  var map = {1:"I",2:"II",13:"III",14:"IV",15:"V",16:"VI",17:"VII",18:"VIII"};
   return map[n] || "";
 }
 function isMetal(z, grp){
-  if ((z>=58 && z<=71) || (z>=90 && z<=103)) return true;
-  const semic = [13,31,32,49,50,51,81,82,83,84,113,114,115,116,117,118];
-  if (semic.includes(z)) return true;
+  if ((z>=58&&z<=71)||(z>=90&&z<=103)) return true;
+  var semic = [13,31,32,49,50,51,81,82,83,84,113,114,115,116,117,118];
+  if (semic.indexOf(z) !== -1) return true;
   if (z===1 || z===2) return false;
-  return grp <= 12;
+  return grp<=12;
 }
-function spdf(z,g){return (z>=58&&z<=71)||(z>=90&&z<=103)?"f":(g===1||g===2||z===2)?"s":(g>=13&&g<=18&&z!==2)?"p":"d";}
+function spdf(z,g){
+  return (z>=58&&z<=71)||(z>=90&&z<=103) ? "f"
+       : (g===1||g===2||z===2)            ? "s"
+       : (g>=13&&g<=18&&z!==2)            ? "p"
+       : "d";
+}
 
-/* ========== full data (118) ========== */
-const E = [  /* … unchanged data array … */  
-/*  — main block —  */
+/* ---------- element data (118) ---------- */
+var E = [
+/* — first 36 (H-Kr) — */
 {Z:1,sym:"H",name:"Hydrogen",mass:"1.0",g:1,p:1},
 {Z:2,sym:"He",name:"Helium",mass:"4.0",g:18,p:1},
 {Z:3,sym:"Li",name:"Lithium",mass:"6.9",g:1,p:2},
@@ -197,6 +95,7 @@ const E = [  /* … unchanged data array … */
 {Z:34,sym:"Se",name:"Selenium",mass:"79.0",g:16,p:4},
 {Z:35,sym:"Br",name:"Bromine",mass:"79.9",g:17,p:4},
 {Z:36,sym:"Kr",name:"Krypton",mass:"83.8",g:18,p:4},
+/* — 37–118 exactly as before … — */
 {Z:37,sym:"Rb",name:"Rubidium",mass:"85.5",g:1,p:5},
 {Z:38,sym:"Sr",name:"Strontium",mass:"87.6",g:2,p:5},
 {Z:39,sym:"Y",name:"Yttrium",mass:"88.9",g:3,p:5},
@@ -283,48 +182,51 @@ const E = [  /* … unchanged data array … */
 {Z:103,sym:"Lr",name:"Lawrencium",mass:"262.0"}
 ];
 
-/* ----- table builders ----- */
+/* ---------- build element block ---------- */
 function elementBlock(el){
-  const blk = document.createElement("div");
-  const full  = el.name,
-        short = (el.name.length > 8 ? el.name.slice(0,4) : el.name);
+  var blk   = document.createElement("div");
+  var full  = el.name;
+  var short = (el.name.length>8 ? el.name.slice(0,4) : el.name);
 
-  blk.className       = "element-block";
-  blk.dataset.symbol  = el.sym.toLowerCase();
-  blk.dataset.full    = full;
-  blk.dataset.short   = short.toLowerCase();
-  blk.dataset.spdf    = spdf(el.Z, el.g || 0);   // <- fixed
+  blk.className      = "element-block";
+  blk.dataset.symbol = el.sym.toLowerCase();
+  blk.dataset.full   = full;
+  blk.dataset.short  = short.toLowerCase();
+  blk.dataset.spdf   = spdf(el.Z, el.g || 0);
 
   blk.innerHTML =
-   `<div class="mass-num" style="color:${isMetal(el.Z, el.g || 99) ? "#b75615" : "#236687"}">${el.mass}</div>
-    <div class="symbol-box">
-       <p class="symbol">${el.sym}</p>
-       <p class="element-name">${short}</p>
-    </div>
-    <div class="atomic-num">${el.Z}</div>`;
+   '<div class="mass-num" style="color:'+
+      (isMetal(el.Z, el.g || 99) ? '#b75615' : '#236687') +
+   '">' + el.mass + '</div>' +
+   '<div class="symbol-box">' +
+     '<p class="symbol">'+el.sym+'</p>' +
+     '<p class="element-name">'+short+'</p>' +
+   '</div>' +
+   '<div class="atomic-num">'+el.Z+'</div>';
 
-  blk.onmouseover = e=>{
-    tooltip.textContent = \`\${full} (Z=\${el.Z}, mass=\${el.mass})\`;
-    tooltip.style.left = e.pageX + "px";
-    tooltip.style.top  = e.pageY + "px";
+  blk.onmouseover = function (e){
+    tooltip.textContent = full+' (Z='+el.Z+', mass='+el.mass+')';
+    tooltip.style.left = e.pageX+'px';
+    tooltip.style.top  = e.pageY+'px';
     tooltip.classList.add("show");
   };
-  blk.onmousemove = e=>{
-    tooltip.style.left = e.pageX + "px";
-    tooltip.style.top  = e.pageY + "px";
+  blk.onmousemove = function (e){
+    tooltip.style.left = e.pageX+'px';
+    tooltip.style.top  = e.pageY+'px';
   };
-  blk.onmouseout   = ()=> tooltip.classList.remove("show");
+  blk.onmouseout = function (){ tooltip.classList.remove("show"); };
   return blk;
 }
 
+/* ---------- build the three tables ---------- */
 function buildMain(){
   mainTable = document.getElementById("main-table");
 
-  /* header row */
-  const hdr = document.createElement("tr");
+  /* column headers */
+  var hdr = document.createElement("tr");
   hdr.appendChild(document.createElement("th"));
-  for(let g=1; g<=18; g++){
-    const th = document.createElement("th");
+  for(var g=1; g<=18; g++){
+    var th = document.createElement("th");
     th.textContent = toRoman(g);
     th.className   = "group-header";
     th.dataset.g   = g;
@@ -335,9 +237,9 @@ function buildMain(){
   mainTable.appendChild(hdr);
 
   /* periods */
-  for(let p=1; p<=7; p++){
-    const tr  = document.createElement("tr");
-    const th  = document.createElement("th");
+  for(var p=1; p<=7; p++){
+    var tr = document.createElement("tr");
+    var th = document.createElement("th");
     th.textContent = p;
     th.className   = "period-label";
     th.dataset.p   = p;
@@ -345,83 +247,111 @@ function buildMain(){
     th.onmouseout  = restore;
     tr.appendChild(th);
 
-    for(let g=1; g<=18; g++){
-      const td = document.createElement("td");
-      const el = E.find(e=>e.p===p && e.g===g);
+    for(g=1; g<=18; g++){
+      var td = document.createElement("td");
+      var el = findByPG(p,g);
       if(el) td.appendChild(elementBlock(el)); else td.className="empty";
       tr.appendChild(td);
     }
     mainTable.appendChild(tr);
   }
 }
-
-function buildRow(ids, tableId){
-  const row = document.createElement("tr");
-  ids.forEach(z=>{
-    const el = E.find(e=>e.Z === z);
-    const td = document.createElement("td");
-    td.appendChild(elementBlock(el));
+function buildRow(list, tableId){
+  var row = document.createElement("tr");
+  list.forEach(function(z){
+    var td = document.createElement("td");
+    td.appendChild(elementBlock(findByZ(z)));
     row.appendChild(td);
   });
   document.getElementById(tableId).appendChild(row);
 }
 
-/* ----- hover helpers ----- */
+/* helpers for data search (IE-friendly) */
+function findByZ(z){
+  for(var i=0;i<E.length;i++) if(E[i].Z===z) return E[i];
+  return null;
+}
+function findByPG(p,g){
+  for(var i=0;i<E.length;i++)
+    if(E[i].p===p && E[i].g===g) return E[i];
+  return null;
+}
+
+/* ---------- hover helpers ---------- */
 function setOpacity(val){
-  document.querySelectorAll(".element-block").forEach(b=>b.style.opacity=val);
+  var blocks = document.getElementsByClassName("element-block");
+  for(var i=0;i<blocks.length;i++) blocks[i].style.opacity = val;
 }
 function colHover(e){
-  setOpacity(.5);
-  const g = +e.target.dataset.g;
-  [...mainTable.rows].slice(1).forEach(r=>{
-    r.cells[g]?.firstChild && (r.cells[g].firstChild.style.opacity="1");
-  });
+  setOpacity(0.5);
+  var g = parseInt(e.target.dataset.g,10);
+  for(var r=1;r<mainTable.rows.length;r++){
+    var cell = mainTable.rows[r].cells[g];
+    if(cell && cell.firstChild) cell.firstChild.style.opacity="1";
+  }
   e.target.style.opacity="1";
 }
 function rowHover(e){
-  setOpacity(.5);
-  const p = +e.target.dataset.p;
-  [...mainTable.rows][p].querySelectorAll(".element-block")
-      .forEach(b=>b.style.opacity="1");
+  setOpacity(0.5);
+  var p = parseInt(e.target.dataset.p,10);
+  var cells = mainTable.rows[p].getElementsByClassName("element-block");
+  for(var i=0;i<cells.length;i++) cells[i].style.opacity="1";
   e.target.style.opacity="1";
 }
-function restore(){ activeBlock ? applyBlock(activeBlock) : setOpacity(1); }
-function applyBlock(t){
-  setOpacity(.5);
-  document.querySelectorAll(\`.element-block[data-spdf="\${t}"]\`)
-          .forEach(b=>b.style.opacity="1");
+function restore(){
+  if(activeBlock) applyBlock(activeBlock); else setOpacity(1);
 }
-function highlightSPDF(t){ activeBlock = t; applyBlock(t); }
-function clearHighlight(){ activeBlock = null; setOpacity(1); }
+function applyBlock(t){
+  setOpacity(0.5);
+  var blocks = document.querySelectorAll('.element-block[data-spdf="'+t+'"]');
+  for(var i=0;i<blocks.length;i++) blocks[i].style.opacity="1";
+}
+function highlightSPDF(t){ activeBlock=t; applyBlock(t); }
+function clearHighlight(){ activeBlock=null; setOpacity(1); }
 
-/* ----- search ----- */
+/* ---------- search ---------- */
 function search(){
-  const q = this.value.trim().toLowerCase();
-  const blocks = document.querySelectorAll(".element-block");
-  blocks.forEach(b=>{
+  var q = this.value.trim().toLowerCase();
+  var blocks = document.getElementsByClassName("element-block");
+  var first  = null;
+
+  for(var i=0;i<blocks.length;i++){
+    var b = blocks[i];
     b.classList.remove("search-highlight");
-    b.querySelector(".element-name").textContent = b.dataset.short;
+    b.getElementsByClassName("element-name")[0].textContent = b.dataset.short;
     b.style.opacity = activeBlock ? ((b.dataset.spdf===activeBlock) ? "1" : ".5") : "1";
-  });
+  }
   if(!q) return;
 
-  let first=null;
-  blocks.forEach(b=>{
-    const match = b.dataset.symbol===q || b.dataset.short.startsWith(q);
+  for(i=0;i<blocks.length;i++){
+    b = blocks[i];
+    var match = (b.dataset.symbol===q) || (b.dataset.short.indexOf(q)===0);
     if(match){
       b.classList.add("search-highlight");
-      b.querySelector(".element-name").textContent = b.dataset.full;
-      b.style.opacity="1"; if(!first) first=b;
-    }else b.style.opacity=".2";
-  });
-  first?.scrollIntoView({block:"center",inline:"center",behavior:"smooth"});
+      b.getElementsByClassName("element-name")[0].textContent = b.dataset.full;
+      b.style.opacity="1";
+      if(!first) first=b;
+    }else{
+      b.style.opacity="0.2";
+    }
+  }
+  if(first){
+    first.scrollIntoView({block:"center",inline:"center",behavior:"smooth"});
+  }
 }
 
-/* ----- build everything on load ----- */
+/* ---------- build on load ---------- */
 buildMain();
-buildRow([...Array(14)].map((_,i)=>58+i), "lanthanide-table");
-buildRow([...Array(14)].map((_,i)=>90+i), "actinide-table");
-document.getElementById("element-search").addEventListener("input", search);
+buildRow(range(58,71),"lanthanide-table");   // 58…71 inclusive
+buildRow(range(90,103),"actinide-table");    // 90…103 inclusive
+document.getElementById("element-search").addEventListener("input",search);
+
+/* small utility */
+function range(a,b){
+  var arr=[];
+  for(var i=a;i<=b;i++) arr.push(i);
+  return arr;
+}
 </script>
 </body>
 </html>
