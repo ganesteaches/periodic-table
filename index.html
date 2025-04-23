@@ -38,7 +38,7 @@ td.empty{background:transparent;}
 
 .sub-table-title{text-align:center;margin:.9rem 0 .3rem;font-size:.9rem;}
 
-/* ===== element block (3‑D look) ===== */
+/* ===== element block (3-D look) ===== */
 .element-block{
   position:relative;
   width:100%;
@@ -59,11 +59,7 @@ td.empty{background:transparent;}
 }
 .element-block::before,
 .element-block::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  pointer-events:none;
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
 }
 .element-block::before{
   background:linear-gradient(130deg,
@@ -123,10 +119,10 @@ td.empty{background:transparent;}
 </div>
 
 <div class="block-buttons">
-  <button onclick="highlightSPDF('s')">s‑block</button>
-  <button onclick="highlightSPDF('p')">p‑block</button>
-  <button onclick="highlightSPDF('d')">d‑block</button>
-  <button onclick="highlightSPDF('f')">f‑block</button>
+  <button onclick="highlightSPDF('s')">s-block</button>
+  <button onclick="highlightSPDF('p')">p-block</button>
+  <button onclick="highlightSPDF('d')">d-block</button>
+  <button onclick="highlightSPDF('f')">f-block</button>
   <button onclick="clearHighlight()">clear</button>
 </div>
 
@@ -141,29 +137,30 @@ td.empty{background:transparent;}
 <div id="tooltip"></div>
 
 <!-- =============================================================== -->
-<!--  JavaScript (nothing external required)                         -->
+<!--  JavaScript (no external dependencies)                          -->
 <!-- =============================================================== -->
 <script>
 /* ========== utilities ========== */
-const tooltip=document.getElementById("tooltip");
-let activeBlock=null, mainTable;
+const tooltip = document.getElementById("tooltip");
+let activeBlock = null, mainTable;
 
 function toRoman(n){
-  const map={1:"I",2:"II",3:"",4:"",5:"",6:"",7:"",8:"",9:"",10:"",
-             11:"",12:"",13:"III",14:"IV",15:"V",16:"VI",17:"VII",18:"VIII"};
-  return map[n]||"";
+  const map = {1:"I",2:"II",3:"",4:"",5:"",6:"",7:"",8:"",9:"",10:"",
+               11:"",12:"",13:"III",14:"IV",15:"V",16:"VI",17:"VII",18:"VIII"};
+  return map[n] || "";
 }
-function isMetal(z,grp){
-  if((z>=58&&z<=71)||(z>=90&&z<=103))return true;
-  const semic=[13,31,32,49,50,51,81,82,83,84,113,114,115,116,117,118];
-  if(semic.includes(z))return true;
-  if(z===1||z===2)return false;
-  return grp<=12;
+function isMetal(z, grp){
+  if ((z>=58 && z<=71) || (z>=90 && z<=103)) return true;
+  const semic = [13,31,32,49,50,51,81,82,83,84,113,114,115,116,117,118];
+  if (semic.includes(z)) return true;
+  if (z===1 || z===2) return false;
+  return grp <= 12;
 }
 function spdf(z,g){return (z>=58&&z<=71)||(z>=90&&z<=103)?"f":(g===1||g===2||z===2)?"s":(g>=13&&g<=18&&z!==2)?"p":"d";}
 
 /* ========== full data (118) ========== */
-const E=[ /* — data array exactly as before — */
+const E = [  /* … unchanged data array … */  
+/*  — main block —  */
 {Z:1,sym:"H",name:"Hydrogen",mass:"1.0",g:1,p:1},
 {Z:2,sym:"He",name:"Helium",mass:"4.0",g:18,p:1},
 {Z:3,sym:"Li",name:"Lithium",mass:"6.9",g:1,p:2},
@@ -288,70 +285,81 @@ const E=[ /* — data array exactly as before — */
 
 /* ----- table builders ----- */
 function elementBlock(el){
-  const blk=document.createElement("div");
-  const full=el.name, short=(el.name.length>8?el.name.slice(0,4):el.name);
-  blk.className="element-block";
-  blk.dataset.symbol=el.sym.toLowerCase();
-  blk.dataset.full=full;
-  blk.dataset.short=short.toLowerCase();
-  blk.dataset.spdf=spdf(el.Z,el.g??0);
+  const blk = document.createElement("div");
+  const full  = el.name,
+        short = (el.name.length > 8 ? el.name.slice(0,4) : el.name);
 
-  blk.innerHTML=
-   `<div class="mass-num" style="color:${isMetal(el.Z,el.g??99)?"#b75615":"#236687"}">${el.mass}</div>
+  blk.className       = "element-block";
+  blk.dataset.symbol  = el.sym.toLowerCase();
+  blk.dataset.full    = full;
+  blk.dataset.short   = short.toLowerCase();
+  blk.dataset.spdf    = spdf(el.Z, el.g || 0);   // <- fixed
+
+  blk.innerHTML =
+   `<div class="mass-num" style="color:${isMetal(el.Z, el.g || 99) ? "#b75615" : "#236687"}">${el.mass}</div>
     <div class="symbol-box">
        <p class="symbol">${el.sym}</p>
        <p class="element-name">${short}</p>
     </div>
     <div class="atomic-num">${el.Z}</div>`;
 
-  blk.onmouseover=e=>{
-    tooltip.textContent=\`\${full} (Z=\${el.Z}, mass=\${el.mass})\`;
-    tooltip.style.left=e.pageX+"px"; tooltip.style.top=e.pageY+"px";
+  blk.onmouseover = e=>{
+    tooltip.textContent = \`\${full} (Z=\${el.Z}, mass=\${el.mass})\`;
+    tooltip.style.left = e.pageX + "px";
+    tooltip.style.top  = e.pageY + "px";
     tooltip.classList.add("show");
   };
-  blk.onmousemove=e=>{
-    tooltip.style.left=e.pageX+"px";
-    tooltip.style.top=e.pageY+"px";
+  blk.onmousemove = e=>{
+    tooltip.style.left = e.pageX + "px";
+    tooltip.style.top  = e.pageY + "px";
   };
-  blk.onmouseout=()=>tooltip.classList.remove("show");
+  blk.onmouseout   = ()=> tooltip.classList.remove("show");
   return blk;
 }
 
 function buildMain(){
-  mainTable=document.getElementById("main-table");
-  /* header */
-  const hdr=document.createElement("tr");
+  mainTable = document.getElementById("main-table");
+
+  /* header row */
+  const hdr = document.createElement("tr");
   hdr.appendChild(document.createElement("th"));
-  for(let g=1;g<=18;g++){
-    const th=document.createElement("th");
-    th.textContent=toRoman(g);
-    th.className="group-header"; th.dataset.g=g;
-    th.onmouseover=colHover; th.onmouseout=restore;
+  for(let g=1; g<=18; g++){
+    const th = document.createElement("th");
+    th.textContent = toRoman(g);
+    th.className   = "group-header";
+    th.dataset.g   = g;
+    th.onmouseover = colHover;
+    th.onmouseout  = restore;
     hdr.appendChild(th);
   }
   mainTable.appendChild(hdr);
 
-  for(let p=1;p<=7;p++){
-    const tr=document.createElement("tr");
-    const th=document.createElement("th");
-    th.textContent=p; th.className="period-label"; th.dataset.p=p;
-    th.onmouseover=rowHover; th.onmouseout=restore;
+  /* periods */
+  for(let p=1; p<=7; p++){
+    const tr  = document.createElement("tr");
+    const th  = document.createElement("th");
+    th.textContent = p;
+    th.className   = "period-label";
+    th.dataset.p   = p;
+    th.onmouseover = rowHover;
+    th.onmouseout  = restore;
     tr.appendChild(th);
-    for(let g=1;g<=18;g++){
-      const td=document.createElement("td");
-      const el=E.find(e=>e.p===p && e.g===g);
-      if(el)td.appendChild(elementBlock(el)); else td.className="empty";
+
+    for(let g=1; g<=18; g++){
+      const td = document.createElement("td");
+      const el = E.find(e=>e.p===p && e.g===g);
+      if(el) td.appendChild(elementBlock(el)); else td.className="empty";
       tr.appendChild(td);
     }
     mainTable.appendChild(tr);
   }
 }
 
-function buildRow(ids,tableId){
-  const row=document.createElement("tr");
+function buildRow(ids, tableId){
+  const row = document.createElement("tr");
   ids.forEach(z=>{
-    const el=E.find(e=>e.Z===z);
-    const td=document.createElement("td");
+    const el = E.find(e=>e.Z === z);
+    const td = document.createElement("td");
     td.appendChild(elementBlock(el));
     row.appendChild(td);
   });
@@ -364,7 +372,7 @@ function setOpacity(val){
 }
 function colHover(e){
   setOpacity(.5);
-  const g=+e.target.dataset.g;
+  const g = +e.target.dataset.g;
   [...mainTable.rows].slice(1).forEach(r=>{
     r.cells[g]?.firstChild && (r.cells[g].firstChild.style.opacity="1");
   });
@@ -372,38 +380,38 @@ function colHover(e){
 }
 function rowHover(e){
   setOpacity(.5);
-  const p=+e.target.dataset.p;
+  const p = +e.target.dataset.p;
   [...mainTable.rows][p].querySelectorAll(".element-block")
       .forEach(b=>b.style.opacity="1");
   e.target.style.opacity="1";
 }
-function restore(){activeBlock?applyBlock(activeBlock):setOpacity(1);}
+function restore(){ activeBlock ? applyBlock(activeBlock) : setOpacity(1); }
 function applyBlock(t){
   setOpacity(.5);
   document.querySelectorAll(\`.element-block[data-spdf="\${t}"]\`)
           .forEach(b=>b.style.opacity="1");
 }
-function highlightSPDF(t){activeBlock=t;applyBlock(t);}
-function clearHighlight(){activeBlock=null;setOpacity(1);}
+function highlightSPDF(t){ activeBlock = t; applyBlock(t); }
+function clearHighlight(){ activeBlock = null; setOpacity(1); }
 
 /* ----- search ----- */
 function search(){
-  const q=this.value.trim().toLowerCase();
-  const blocks=document.querySelectorAll(".element-block");
+  const q = this.value.trim().toLowerCase();
+  const blocks = document.querySelectorAll(".element-block");
   blocks.forEach(b=>{
     b.classList.remove("search-highlight");
-    b.querySelector(".element-name").textContent=b.dataset.short;
-    b.style.opacity=activeBlock?((b.dataset.spdf===activeBlock)?"1":".5"):"1";
+    b.querySelector(".element-name").textContent = b.dataset.short;
+    b.style.opacity = activeBlock ? ((b.dataset.spdf===activeBlock) ? "1" : ".5") : "1";
   });
-  if(!q)return;
+  if(!q) return;
 
   let first=null;
   blocks.forEach(b=>{
-    const match=b.dataset.symbol===q||b.dataset.short.startsWith(q);
+    const match = b.dataset.symbol===q || b.dataset.short.startsWith(q);
     if(match){
       b.classList.add("search-highlight");
-      b.querySelector(".element-name").textContent=b.dataset.full;
-      b.style.opacity="1"; if(!first)first=b;
+      b.querySelector(".element-name").textContent = b.dataset.full;
+      b.style.opacity="1"; if(!first) first=b;
     }else b.style.opacity=".2";
   });
   first?.scrollIntoView({block:"center",inline:"center",behavior:"smooth"});
@@ -411,10 +419,9 @@ function search(){
 
 /* ----- build everything on load ----- */
 buildMain();
-buildRow([...Array(14)].map((_,i)=>58+i),"lanthanide-table");
-buildRow([...Array(14)].map((_,i)=>90+i),"actinide-table");
-document.getElementById("element-search").addEventListener("input",search);
+buildRow([...Array(14)].map((_,i)=>58+i), "lanthanide-table");
+buildRow([...Array(14)].map((_,i)=>90+i), "actinide-table");
+document.getElementById("element-search").addEventListener("input", search);
 </script>
 </body>
 </html>
-
