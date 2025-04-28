@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Compact Neon Periodic Table – scroll-free</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- ========================================================= -->
+<!--                       CSS STYLING                         -->
+<!-- ========================================================= -->
+<style>
+/* =========== layout =========== */
+html,body{margin:0;padding:0;height:100%;background:#1a1a1a;color:#fff;
+          font:13px/1.4 Arial,Helvetica,sans-serif;overflow-x:hidden;}
+#root{display:flex;flex-direction:column;align-items:center;gap:.9rem}
+
+/* =========== search bar (wide) =========== */
+#element-search{width:300px;padding:6px 12px;font-size:.85rem;color:#fff;
+  background:#1a1a1a;border:1px solid #ff9800;border-radius:8px;}
+#element-search:focus{outline:none;box-shadow:0 0 8px 2px rgba(255,152,0,.8)}
+
+/* =========== block buttons =========== */
+.block-buttons{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center}
+.block-buttons button{padding:6px 13px;font-size:.8rem;border-radius:10px;
+  cursor:pointer;transition:.25s}
+.filter{border:1px solid #fff;color:#fff;background:#000;
+  box-shadow:0 0 6px 2px rgba(255,255,255,.35)}
+.filter:hover{box-shadow:0 0 9px 4px rgba(255,255,255,.7);filter:brightness(120%)}
+#clear-btn{border:1px solid #ff9800;color:#ff9800;background:#000;
+  box-shadow:0 0 6px 2px rgba(255,152,0,.4)}
+#clear-btn:hover{box-shadow:0 0 10px 4px rgba(255,152,0,.8);filter:brightness(120%)}
+
+/* =========== table =========== */
+.table-wrap{overflow:visible}          /* ← no internal scrollbars */
+table{border-collapse:separate;border-spacing:5px;margin:0 auto}
+th{border:none;background:none;color:#fff;text-align:center;padding:2px}
+.group-header,.period-label{cursor:pointer;font-size:.95rem}
+.group-header:hover,.period-label:hover{background:rgba(255,152,0,.15)}
+td{width:3.2rem;height:4rem}           /* roomy desktop tiles */
+td.empty{background:transparent}
+
+/* =========== element block visuals =========== */
+.elem{position:relative;width:100%;height:100%;border-radius:8px;padding:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  background:#000;transition:.3s transform,.3s box-shadow,.3s opacity;will-change:transform}
+.elem::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.24)0%,rgba(0,0,0,.27)100%);
+  mix-blend-mode:overlay}
+
+/* metals */
+.metal{border:2px solid #ff9800;box-shadow:0 0 7px 3px rgba(255,152,0,.62),inset 0 0 6px rgba(0,0,0,.65)}
+.metal:hover{transform:translateY(-3px)scale(1.08)rotateX(12deg)rotateY(15deg);
+  box-shadow:0 0 13px 6px rgba(255,152,0,.9),inset 0 0 9px rgba(255,152,0,.45)}
+.metal .symbox{border-color:#ff9800;background:rgba(255,152,0,.12);
+  box-shadow:0 0 9px 3px rgba(255,152,0,.6),inset 0 0 5px rgba(255,152,0,.45)}
+
+/* non-metals */
+.nonmetal{border:2px solid #00d8ff;box-shadow:0 0 7px 3px rgba(0,216,255,.62),inset 0 0 6px rgba(0,0,0,.65)}
+.nonmetal:hover{transform:translateY(-3px)scale(1.08)rotateX(12deg)rotateY(-15deg);
+  box-shadow:0 0 13px 6px rgba(0,216,255,.9),inset 0 0 9px rgba(0,216,255,.45)}
+.nonmetal .symbox{border-color:#00d8ff;background:rgba(0,216,255,.12);
+  box-shadow:0 0 9px 3px rgba(0,216,255,.6),inset 0 0 5px rgba(0,216,255,.45)}
+
+/* inner box & text */
+.symbox{padding:1px 3px;border:2px solid;border-radius:6px;min-width:2rem}
+.mass  {font-size:.62rem;font-weight:bold;margin-top:2px}
+.symbol{font-size:.82rem;font-weight:bold;margin:0;color:#fff;line-height:1}
+.name  {font-size:.52rem;color:#fff;margin:0;opacity:.9}
+.z     {font-size:.57rem;color:#fff;margin-bottom:3px}
+
+/* tooltip */
+#tip{position:absolute;pointer-events:none;z-index:9999;background:rgba(34,34,34,.92);
+  border:1px solid #fff;border-radius:5px;padding:6px 9px;font-size:.72rem;line-height:1.35;color:#fff;
+  opacity:0;transform:translate(-50%,-50%)scale(.8);transition:.2s opacity,.2s transform;white-space:nowrap}
+#tip.show{opacity:1;transform:translate(-50%,-50%)scale(1)}
+
+/* highlight */
+.highlight{box-shadow:0 0 16px 7px rgba(255,165,0,.95)!important;
+  transform:translateY(-3px)scale(1.15)rotateX(12deg)rotateY(-15deg)!important;z-index:1}
+
+/* section titles */
+.subtitle{color:#ff9800;font-size:.8rem;text-align:center;margin:.8rem 0 .25rem}
+
+/* --------- responsive fallback (phones / small tablets) --------- */
+@media (max-width:900px){
+  #element-search{width:260px}
+  td{width:2.6rem;height:3.4rem}
+  .symbox{min-width:1.7rem}
+}
+</style>
+</head>
+<body>
+<div id="root">
+
+  <input id="element-search" placeholder="Search element (name or symbol)…">
+
+  <div class="block-buttons">
+    <button class="filter" onclick="filterBlock('s')">s-block</button>
+    <button class="filter" onclick="filterBlock('p')">p-block</button>
+    <button class="filter" onclick="filterBlock('d')">d-block</button>
+    <button class="filter" onclick="filterBlock('f')">f-block</button>
+    <button id="clear-btn" onclick="clearFilter()">clear</button>
+  </div>
+
+  <div class="table-wrap"><table id="main"></table></div>
+
+  <div class="subtitle">Lanthanides</div>
+  <div class="table-wrap"><table id="lanth"></table></div>
+
+  <div class="subtitle">Actinides</div>
+  <div class="table-wrap"><table id="actin"></table></div>
+</div>
+
+<div id="tip"></div>
+
+<!-- ========================================================= -->
+<!--                       JAVASCRIPT                          -->
+<!-- ========================================================= -->
+<script>
+const $   = s=>document.querySelector(s);
+const tip = $('#tip');
+let currentBlock=null, mainTbl;
+
+/* simple metal / non-metal test */
+function isMetal(Z,g){if((Z>=58&&Z<=71)||(Z>=90&&Z<=103))return true;
+  const semi=[13,31,32,49,50,51,81,82,83,84,113,114,115,116,117,118];
+  if(semi.includes(Z))return true;
+  if(Z===1||Z===2)return false;
+  return g<=12;}
+const blk=(Z,g)=>(Z>=58&&Z<=71)||(Z>=90&&Z<=103)?'f':(g===1||g===2||Z===2)?'s':(g>=13&&g<=18&&Z!==2)?'p':'d';
+
+/* full element data (same as before, omitted here for brevity) */
+const E=[
+/* Z sym name          mass   g  p  en    conf */
+{Z:1,  sym:'H',  name:'Hydrogen',      mass:'1.0',   g:1,  p:1, en:2.20, conf:'1s¹'},
+{Z:2,  sym:'He', name:'Helium',        mass:'4.0',   g:18, p:1, en:null, conf:'1s²'},
+{Z:3,  sym:'Li', name:'Lithium',       mass:'6.9',   g:1,  p:2, en:0.98, conf:'[He] 2s¹'},
+{Z:4,  sym:'Be', name:'Beryllium',     mass:'9.0',   g:2,  p:2, en:1.57, conf:'[He] 2s²'},
+{Z:5,  sym:'B',  name:'Boron',         mass:'10.8',  g:13, p:2, en:2.04, conf:'[He] 2s² 2p¹'},
+{Z:6,  sym:'C',  name:'Carbon',        mass:'12.0',  g:14, p:2, en:2.55, conf:'[He] 2s² 2p²'},
+{Z:7,  sym:'N',  name:'Nitrogen',      mass:'14.0',  g:15, p:2, en:3.04, conf:'[He] 2s² 2p³'},
+{Z:8,  sym:'O',  name:'Oxygen',        mass:'16.0',  g:16, p:2, en:3.44, conf:'[He] 2s² 2p⁴'},
+{Z:9,  sym:'F',  name:'Fluorine',      mass:'19.0',  g:17, p:2, en:3.98, conf:'[He] 2s² 2p⁵'},
+{Z:10, sym:'Ne', name:'Neon',          mass:'20.2',  g:18, p:2, en:null, conf:'[He] 2s² 2p⁶'},
+{Z:11, sym:'Na', name:'Sodium',        mass:'23.0',  g:1,  p:3, en:0.93, conf:'[Ne] 3s¹'},
+{Z:12, sym:'Mg', name:'Magnesium',     mass:'24.3',  g:2,  p:3, en:1.31, conf:'[Ne] 3s²'},
+{Z:13, sym:'Al', name:'Aluminium',     mass:'27.0',  g:13, p:3, en:1.61, conf:'[Ne] 3s² 3p¹'},
+{Z:14, sym:'Si', name:'Silicon',       mass:'28.1',  g:14, p:3, en:1.90, conf:'[Ne] 3s² 3p²'},
+{Z:15, sym:'P',  name:'Phosphorus',    mass:'31.0',  g:15, p:3, en:2.19, conf:'[Ne] 3s² 3p³'},
+{Z:16, sym:'S',  name:'Sulfur',        mass:'32.1',  g:16, p:3, en:2.58, conf:'[Ne] 3s² 3p⁴'},
+{Z:17, sym:'Cl', name:'Chlorine',      mass:'35.5',  g:17, p:3, en:3.16, conf:'[Ne] 3s² 3p⁵'},
+{Z:18, sym:'Ar', name:'Argon',         mass:'39.9',  g:18, p:3, en:null, conf:'[Ne] 3s² 3p⁶'},
+{Z:19, sym:'K',  name:'Potassium',     mass:'39.1',  g:1,  p:4, en:0.82, conf:'[Ar] 4s¹'},
+{Z:20, sym:'Ca', name:'Calcium',       mass:'40.1',  g:2,  p:4, en:1.00, conf:'[Ar] 4s²'},
+{Z:21, sym:'Sc', name:'Scandium',      mass:'45.0',  g:3,  p:4, en:1.36, conf:'[Ar] 3d¹ 4s²'},
+{Z:22, sym:'Ti', name:'Titanium',      mass:'47.9',  g:4,  p:4, en:1.54, conf:'[Ar] 3d² 4s²'},
+{Z:23, sym:'V',  name:'Vanadium',      mass:'50.9',  g:5,  p:4, en:1.63, conf:'[Ar] 3d³ 4s²'},
+{Z:24, sym:'Cr', name:'Chromium',      mass:'52.0',  g:6,  p:4, en:1.66, conf:'[Ar] 3d⁵ 4s¹'},
+{Z:25, sym:'Mn', name:'Manganese',     mass:'54.9',  g:7,  p:4, en:1.55, conf:'[Ar] 3d⁵ 4s²'},
+{Z:26, sym:'Fe', name:'Iron',          mass:'55.8',  g:8,  p:4, en:1.83, conf:'[Ar] 3d⁶ 4s²'},
+{Z:27, sym:'Co', name:'Cobalt',        mass:'58.9',  g:9,  p:4, en:1.88, conf:'[Ar] 3d⁷ 4s²'},
+{Z:28, sym:'Ni', name:'Nickel',        mass:'58.7',  g:10, p:4, en:1.91, conf:'[Ar] 3d⁸ 4s²'},
+{Z:29, sym:'Cu', name:'Copper',        mass:'63.5',  g:11, p:4, en:1.90, conf:'[Ar] 3d¹⁰ 4s¹'},
+{Z:30, sym:'Zn', name:'Zinc',          mass:'65.4',  g:12, p:4, en:1.65, conf:'[Ar] 3d¹⁰ 4s²'},
+{Z:31, sym:'Ga', name:'Gallium',       mass:'69.7',  g:13, p:4, en:1.81, conf:'[Ar] 3d¹⁰ 4s² 4p¹'},
+{Z:32, sym:'Ge', name:'Germanium',     mass:'72.6',  g:14, p:4, en:2.01, conf:'[Ar] 3d¹⁰ 4s² 4p²'},
+{Z:33, sym:'As', name:'Arsenic',       mass:'74.9',  g:15, p:4, en:2.18, conf:'[Ar] 3d¹⁰ 4s² 4p³'},
+{Z:34, sym:'Se', name:'Selenium',      mass:'79.0',  g:16, p:4, en:2.55, conf:'[Ar] 3d¹⁰ 4s² 4p⁴'},
+{Z:35, sym:'Br', name:'Bromine',       mass:'79.9',  g:17, p:4, en:2.96, conf:'[Ar] 3d¹⁰ 4s² 4p⁵'},
+{Z:36, sym:'Kr', name:'Krypton',       mass:'83.8',  g:18, p:4, en:3.00, conf:'[Ar] 3d¹⁰ 4s² 4p⁶'},
+/* — Rb → Rn — */
+{Z:37,sym:'Rb',name:'Rubidium',      mass:'85.5',g:1, p:5,en:0.82,conf:'[Kr] 5s¹'},
+{Z:38,sym:'Sr',name:'Strontium',     mass:'87.6',g:2, p:5,en:0.95,conf:'[Kr] 5s²'},
+{Z:39,sym:'Y', name:'Yttrium',       mass:'88.9',g:3, p:5,en:1.22,conf:'[Kr] 4d¹ 5s²'},
+{Z:40,sym:'Zr',name:'Zirconium',     mass:'91.2',g:4, p:5,en:1.33,conf:'[Kr] 4d² 5s²'},
+{Z:41,sym:'Nb',name:'Niobium',       mass:'92.9',g:5, p:5,en:1.60,conf:'[Kr] 4d⁴ 5s¹'},
+{Z:42,sym:'Mo',name:'Molybdenum',    mass:'95.9',g:6, p:5,en:2.16,conf:'[Kr] 4d⁵ 5s¹'},
+{Z:43,sym:'Tc',name:'Technetium',    mass:'99.0',g:7, p:5,en:1.90,conf:'[Kr] 4d⁵ 5s²'},
+{Z:44,sym:'Ru',name:'Ruthenium',     mass:'101.1',g:8, p:5,en:2.20,conf:'[Kr] 4d⁷ 5s¹'},
+{Z:45,sym:'Rh',name:'Rhodium',       mass:'102.9',g:9, p:5,en:2.28,conf:'[Kr] 4d⁸ 5s¹'},
+{Z:46,sym:'Pd',name:'Palladium',     mass:'106.4',g:10,p:5,en:2.20,conf:'[Kr] 4d¹⁰'},
+{Z:47,sym:'Ag',name:'Silver',        mass:'107.9',g:11,p:5,en:1.93,conf:'[Kr] 4d¹⁰ 5s¹'},
+{Z:48,sym:'Cd',name:'Cadmium',       mass:'112.4',g:12,p:5,en:1.69,conf:'[Kr] 4d¹⁰ 5s²'},
+{Z:49,sym:'In',name:'Indium',        mass:'114.8',g:13,p:5,en:1.78,conf:'[Kr] 4d¹⁰ 5s² 5p¹'},
+{Z:50,sym:'Sn',name:'Tin',           mass:'118.7',g:14,p:5,en:1.96,conf:'[Kr] 4d¹⁰ 5s² 5p²'},
+{Z:51,sym:'Sb',name:'Antimony',      mass:'121.8',g:15,p:5,en:2.05,conf:'[Kr] 4d¹⁰ 5s² 5p³'},
+{Z:52,sym:'Te',name:'Tellurium',     mass:'127.6',g:16,p:5,en:2.10,conf:'[Kr] 4d¹⁰ 5s² 5p⁴'},
+{Z:53,sym:'I', name:'Iodine',        mass:'126.9',g:17,p:5,en:2.66,conf:'[Kr] 4d¹⁰ 5s² 5p⁵'},
+{Z:54,sym:'Xe',name:'Xenon',         mass:'131.3',g:18,p:5,en:2.60,conf:'[Kr] 4d¹⁰ 5s² 5p⁶'},
+/* — Cs → Og — */
+{Z:55,sym:'Cs',name:'Cesium',        mass:'132.9',g:1,p:6,en:0.79,conf:'[Xe] 6s¹'},
+{Z:56,sym:'Ba',name:'Barium',        mass:'137.3',g:2,p:6,en:0.89,conf:'[Xe] 6s²'},
+{Z:57,sym:'La',name:'Lanthanum',     mass:'138.9',g:3,p:6,en:1.10,conf:'[Xe] 5d¹ 6s²'},
+{Z:72,sym:'Hf',name:'Hafnium',       mass:'178.5',g:4,p:6,en:1.30,conf:'[Xe] 4f¹⁴ 5d² 6s²'},
+{Z:73,sym:'Ta',name:'Tantalum',      mass:'180.9',g:5,p:6,en:1.50,conf:'[Xe] 4f¹⁴ 5d³ 6s²'},
+{Z:74,sym:'W', name:'Tungsten',      mass:'183.8',g:6,p:6,en:2.36,conf:'[Xe] 4f¹⁴ 5d⁴ 6s²'},
+{Z:75,sym:'Re',name:'Rhenium',       mass:'186.2',g:7,p:6,en:1.90,conf:'[Xe] 4f¹⁴ 5d⁵ 6s²'},
+{Z:76,sym:'Os',name:'Osmium',        mass:'190.2',g:8,p:6,en:2.20,conf:'[Xe] 4f¹⁴ 5d⁶ 6s²'},
+{Z:77,sym:'Ir',name:'Iridium',       mass:'192.2',g:9,p:6,en:2.20,conf:'[Xe] 4f¹⁴ 5d⁷ 6s²'},
+{Z:78,sym:'Pt',name:'Platinum',      mass:'195.1',g:10,p:6,en:2.28,conf:'[Xe] 4f¹⁴ 5d⁹ 6s¹'},
+{Z:79,sym:'Au',name:'Gold',          mass:'197.0',g:11,p:6,en:2.54,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s¹'},
+{Z:80,sym:'Hg',name:'Mercury',       mass:'200.6',g:12,p:6,en:2.00,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s²'},
+{Z:81,sym:'Tl',name:'Thallium',      mass:'204.4',g:13,p:6,en:1.62,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹'},
+{Z:82,sym:'Pb',name:'Lead',          mass:'207.2',g:14,p:6,en:2.33,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²'},
+{Z:83,sym:'Bi',name:'Bismuth',       mass:'209.0',g:15,p:6,en:2.02,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³'},
+{Z:84,sym:'Po',name:'Polonium',      mass:'209.0',g:16,p:6,en:2.00,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴'},
+{Z:85,sym:'At',name:'Astatine',      mass:'210.0',g:17,p:6,en:2.20,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵'},
+{Z:86,sym:'Rn',name:'Radon',         mass:'222.0',g:18,p:6,en:null,conf:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶'},
+{Z:87,sym:'Fr',name:'Francium',      mass:'223.0',g:1,p:7,en:0.79,conf:'[Rn] 7s¹'},
+{Z:88,sym:'Ra',name:'Radium',        mass:'226.0',g:2,p:7,en:0.89,conf:'[Rn] 7s²'},
+{Z:89,sym:'Ac',name:'Actinium',      mass:'227.0',g:3,p:7,en:1.10,conf:'[Rn] 6d¹ 7s²'},
+{Z:104,sym:'Rf',name:'Rutherfordium',mass:'267.0',g:4,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d² 7s²'},
+{Z:105,sym:'Db',name:'Dubnium',      mass:'268.0',g:5,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d³ 7s²'},
+{Z:106,sym:'Sg',name:'Seaborgium',   mass:'271.0',g:6,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d⁴ 7s²'},
+{Z:107,sym:'Bh',name:'Bohrium',      mass:'272.0',g:7,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d⁵ 7s²'},
+{Z:108,sym:'Hs',name:'Hassium',      mass:'270.0',g:8,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d⁶ 7s²'},
+{Z:109,sym:'Mt',name:'Meitnerium',   mass:'276.0',g:9,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d⁷ 7s²'},
+{Z:110,sym:'Ds',name:'Darmstadtium', mass:'281.0',g:10,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d⁸ 7s²'},
+{Z:111,sym:'Rg',name:'Roentgenium',  mass:'282.0',g:11,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d⁹ 7s²'},
+{Z:112,sym:'Cn',name:'Copernicium',  mass:'285.0',g:12,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s²'},
+{Z:113,sym:'Nh',name:'Nihonium',     mass:'286.0',g:13,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹'},
+{Z:114,sym:'Fl',name:'Flerovium',    mass:'289.0',g:14,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²'},
+{Z:115,sym:'Mc',name:'Moscovium',    mass:'290.0',g:15,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³'},
+{Z:116,sym:'Lv',name:'Livermorium',  mass:'293.0',g:16,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴'},
+{Z:117,sym:'Ts',name:'Tennessine',   mass:'294.0',g:17,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵'},
+{Z:118,sym:'Og',name:'Oganesson',    mass:'294.0',g:18,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶'},
+/* — lanthanides (58-71) — */
+{Z:58,sym:'Ce',name:'Cerium',       mass:'140.1',en:1.12,conf:'[Xe] 4f¹ 5d¹ 6s²'},
+{Z:59,sym:'Pr',name:'Praseodymium', mass:'140.9',en:1.13,conf:'[Xe] 4f³ 6s²'},
+{Z:60,sym:'Nd',name:'Neodymium',    mass:'144.2',en:1.14,conf:'[Xe] 4f⁴ 6s²'},
+{Z:61,sym:'Pm',name:'Promethium',   mass:'145',  en:null,conf:'[Xe] 4f⁵ 6s²'},
+{Z:62,sym:'Sm',name:'Samarium',     mass:'150.4',en:1.17,conf:'[Xe] 4f⁶ 6s²'},
+{Z:63,sym:'Eu',name:'Europium',     mass:'152.0',en:1.20,conf:'[Xe] 4f⁷ 6s²'},
+{Z:64,sym:'Gd',name:'Gadolinium',   mass:'157.2',en:1.20,conf:'[Xe] 4f⁷ 5d¹ 6s²'},
+{Z:65,sym:'Tb',name:'Terbium',      mass:'158.9',en:1.22,conf:'[Xe] 4f⁹ 6s²'},
+{Z:66,sym:'Dy',name:'Dysprosium',   mass:'162.5',en:1.23,conf:'[Xe] 4f¹⁰ 6s²'},
+{Z:67,sym:'Ho',name:'Holmium',      mass:'164.9',en:1.24,conf:'[Xe] 4f¹¹ 6s²'},
+{Z:68,sym:'Er',name:'Erbium',       mass:'167.3',en:1.24,conf:'[Xe] 4f¹² 6s²'},
+{Z:69,sym:'Tm',name:'Thulium',      mass:'168.9',en:1.25,conf:'[Xe] 4f¹³ 6s²'},
+{Z:70,sym:'Yb',name:'Ytterbium',    mass:'173.0',en:1.10,conf:'[Xe] 4f¹⁴ 6s²'},
+{Z:71,sym:'Lu',name:'Lutetium',     mass:'175.0',en:1.27,conf:'[Xe] 4f¹⁴ 5d¹ 6s²'},
+/* — actinides (90-103) — */
+{Z:90,sym:'Th',name:'Thorium',      mass:'232.0',en:1.30,conf:'[Rn] 6d² 7s²'},
+{Z:91,sym:'Pa',name:'Protactinium', mass:'231.0',en:1.50,conf:'[Rn] 5f² 6d¹ 7s²'},
+{Z:92,sym:'U', name:'Uranium',      mass:'238.0',en:1.38,conf:'[Rn] 5f³ 6d¹ 7s²'},
+{Z:93,sym:'Np',name:'Neptunium',    mass:'237.0',en:1.36,conf:'[Rn] 5f⁴ 6d¹ 7s²'},
+{Z:94,sym:'Pu',name:'Plutonium',    mass:'244.0',en:1.28,conf:'[Rn] 5f⁶ 7s²'},
+{Z:95,sym:'Am',name:'Americium',    mass:'243.0',en:1.30,conf:'[Rn] 5f⁷ 7s²'},
+{Z:96,sym:'Cm',name:'Curium',       mass:'247.0',en:1.30,conf:'[Rn] 5f⁷ 6d¹ 7s²'},
+{Z:97,sym:'Bk',name:'Berkelium',    mass:'247.0',en:1.30,conf:'[Rn] 5f⁹ 7s²'},
+{Z:98,sym:'Cf',name:'Californium',  mass:'251.0',en:1.30,conf:'[Rn] 5f¹⁰ 7s²'},
+{Z:99,sym:'Es',name:'Einsteinium',  mass:'252.0',en:1.30,conf:'[Rn] 5f¹¹ 7s²'},
+{Z:100,sym:'Fm',name:'Fermium',     mass:'257.0',en:1.30,conf:'[Rn] 5f¹² 7s²'},
+{Z:101,sym:'Md',name:'Mendelevium', mass:'258.0',en:1.30,conf:'[Rn] 5f¹³ 7s²'},
+{Z:102,sym:'No',name:'Nobelium',    mass:'259.0',en:1.30,conf:'[Rn] 5f¹⁴ 7s²'},
+{Z:103,sym:'Lr',name:'Lawrencium',  mass:'262.0',en:1.30,conf:'[Rn] 5f¹⁴ 6d¹ 7s²'}
+];
+
+/* build one tile */
+function tile(el){
+  const div=document.createElement('div');
+  const short=el.name.length>8?el.name.slice(0,4):el.name;
+  div.className=`elem ${isMetal(el.Z,el.g||0)?'metal':'nonmetal'}`;
+  div.dataset.block=blk(el.Z,el.g||0);
+  div.dataset.sym=el.sym.toLowerCase();
+  div.dataset.short=short.toLowerCase();
+  div.innerHTML=`<div class="mass" style="color:${isMetal(el.Z,el.g||0)?'#ff9800':'#00d8ff'}">${el.mass}</div>
+                 <div class="symbox"><p class="symbol">${el.sym}</p><p class="name">${short}</p></div>
+                 <div class="z">${el.Z}</div>`;
+  div.onmouseover=e=>{
+    tip.innerHTML='<b>'+el.name+'</b> (Z='+el.Z+', mass='+el.mass+')<br>χ = '+(el.en!=null?el.en:'—')+'&nbsp;&nbsp;&nbsp;'+el.conf;
+    tip.style.left=e.pageX+'px';tip.style.top=e.pageY+'px';tip.classList.add('show');};
+  div.onmousemove=e=>{tip.style.left=e.pageX+'px';tip.style.top=e.pageY+'px';};
+  div.onmouseout=()=>tip.classList.remove('show');
+  return div;
+}
+
+/* build the three tables */
+function buildTables(){
+  mainTbl=$('#main');
+  const hdr=document.createElement('tr');hdr.appendChild(document.createElement('th'));
+  for(let g=1;g<=18;g++){
+    const th=document.createElement('th');
+    th.textContent={1:'I',2:'II',13:'III',14:'IV',15:'V',16:'VI',17:'VII',18:'VIII'}[g]||'';
+    th.className='group-header';hdr.appendChild(th);}mainTbl.appendChild(hdr);
+  for(let p=1;p<=7;p++){
+    const tr=document.createElement('tr');
+    const th=document.createElement('th');th.textContent=p;th.className='period-label';tr.appendChild(th);
+    for(let g=1;g<=18;g++){
+      const td=document.createElement('td');
+      const el=E.find(e=>e.p===p&&e.g===g);
+      el?td.appendChild(tile(el)):td.className='empty';
+      tr.appendChild(td);}mainTbl.appendChild(tr);}
+  const buildRow=(start,id)=>{const row=document.createElement('tr');
+    for(let z=start;z<start+14;z++){const td=document.createElement('td');td.appendChild(tile(E.find(e=>e.Z===z)));row.appendChild(td);}
+    $(id).appendChild(row);};
+  buildRow(58,'#lanth');buildRow(90,'#actin');
+}
+
+/* filtering & search */
+function setOpacity(v){document.querySelectorAll('.elem').forEach(e=>e.style.opacity=v);}
+function filterBlock(b){currentBlock=b;applyFilter();}
+function clearFilter(){currentBlock=null;setOpacity(1);}
+function applyFilter(){
+  setOpacity(.4);
+  document.querySelectorAll('.elem[data-block="'+currentBlock+'"]').forEach(e=>e.style.opacity='1');}
+$('#element-search').addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();
+  document.querySelectorAll('.elem').forEach(e=>{
+    e.classList.remove('highlight');
+    e.querySelector('.name').textContent=e.dataset.short;
+    e.style.opacity=currentBlock?(e.dataset.block===currentBlock?'1':'.4'):'1';});
+  if(!q)return;
+  let first=null;
+  document.querySelectorAll('.elem').forEach(e=>{
+    const match=e.dataset.sym===q||e.dataset.short.startsWith(q);
+    if(match){e.classList.add('highlight');const el=E.find(x=>x.sym.toLowerCase()===e.dataset.sym);
+      e.querySelector('.name').textContent=el.name;if(!first)first=e;}else e.style.opacity='0.2';});
+  first&&first.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});});
+
+/* kick-off */
+buildTables();
+</script>
+</body>
+</html>
