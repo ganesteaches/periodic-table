@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Compact Neon Periodic Table – scroll-free</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- ========================================================= -->
+<!--                       CSS STYLING                         -->
+<!-- ========================================================= -->
+<style>
+/* =========== layout =========== */
+html,body{
+  margin:0;padding:0;height:100%;
+  background:#1a1a1a;color:#fff;
+  font:13px/1.4 Arial,Helvetica,sans-serif;
+  overflow-x:hidden;
+}
+#root{
+  display:flex;flex-direction:column;
+  align-items:center;gap:.9rem
+}
+
+/* =========== search bar =========== */
+#element-search{
+  width:300px;padding:6px 12px;font-size:.85rem;
+  color:#fff;background:#1a1a1a;
+  border:1px solid #ffc684;border-radius:8px;
+}
+#element-search:focus{
+  outline:none;
+  box-shadow:0 0 8px 2px rgba(255,198,132,.8)
+}
+
+/* =========== block buttons =========== */
+.block-buttons{
+  display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center
+}
+.block-buttons button{
+  padding:6px 13px;font-size:.8rem;border-radius:10px;
+  cursor:pointer;transition:.25s
+}
+.filter{
+  border:1px solid #fff;color:#fff;background:#000;
+  box-shadow:0 0 6px 2px rgba(255,255,255,.35)
+}
+.filter:hover{
+  box-shadow:0 0 9px 4px rgba(255,255,255,.7);
+  filter:brightness(120%)
+}
+#clear-btn{
+  border:1px solid #ffc684;color:#ffc684;background:#000;
+  box-shadow:0 0 6px 2px rgba(255,198,132,.4)
+}
+#clear-btn:hover{
+  box-shadow:0 0 10px 4px rgba(255,198,132,.8);
+  filter:brightness(120%)
+}
+
+/* =========== table =========== */
+.table-wrap{overflow:visible}     /* ← no internal scrollbars */
+table{border-collapse:separate;border-spacing:5px;margin:0 auto}
+th{border:none;background:none;color:#fff;text-align:center;padding:2px}
+.group-header,.period-label{
+  cursor:pointer;font-size:.95rem
+}
+.group-header:hover,.period-label:hover{
+  background:rgba(255,198,132,.15)
+}
+td{width:3.2rem;height:4rem}      /* roomy desktop tiles */
+td.empty{background:transparent}
+
+/* =========== element block visuals =========== */
+.elem{
+  position:relative;width:100%;height:100%;border-radius:8px;padding:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  background:#000;transition:.3s transform,.3s box-shadow,.3s opacity,.6s filter;will-change:transform;
+  --x:50%; --y:50%;              /* cursor pos for ripple */
+}
+
+/* ---------- pastel metals & non-metals (inner-glow only) ---------- */
+.metal{
+  --glow:rgba(255,198,132,.55);
+  border:2px solid #ffc684;background:#000;
+  box-shadow:inset 0 0 10px 4px var(--glow);
+}
+.metal:hover{
+  transform:translateY(-3px)scale(1.08)rotateX(12deg)rotateY(15deg);
+  box-shadow:inset 0 0 14px 8px var(--glow);
+}
+.metal .symbox{
+  border-color:#ffc684;background:rgba(255,198,132,.12);
+  box-shadow:inset 0 0 5px rgba(255,198,132,.45);
+}
+
+/* non-metals */
+.nonmetal{
+  --glow:rgba(162,232,255,.55);
+  border:2px solid #a2e8ff;background:#000;
+  box-shadow:inset 0 0 10px 4px var(--glow);
+}
+.nonmetal:hover{
+  transform:translateY(-3px)scale(1.08)rotateX(12deg)rotateY(-15deg);
+  box-shadow:inset 0 0 14px 8px var(--glow);
+}
+.nonmetal .symbox{
+  border-color:#a2e8ff;background:rgba(162,232,255,.12);
+  box-shadow:inset 0 0 5px rgba(162,232,255,.45);
+}
+
+/* inner box & text */
+.symbox{
+  padding:1px 3px;border:2px solid;border-radius:6px;min-width:2rem
+}
+.mass  {font-size:.62rem;font-weight:bold;margin-top:2px}
+.symbol{font-size:.82rem;font-weight:bold;margin:0;color:#fff;line-height:1}
+.name  {font-size:.52rem;color:#fff;margin:0;opacity:.9}
+.z     {font-size:.57rem;color:#fff;margin-bottom:3px}
+
+/* tooltip */
+#tip{
+  position:absolute;pointer-events:none;z-index:9999;
+  background:rgba(34,34,34,.92);border:1px solid #fff;border-radius:5px;
+  padding:6px 9px;font-size:.72rem;line-height:1.35;color:#fff;
+  opacity:0;transform:translate(-50%,-50%)scale(.8);
+  transition:.2s opacity,.2s transform;white-space:nowrap
+}
+#tip.show{opacity:1;transform:translate(-50%,-50%)scale(1)}
+
+/* highlight (for search) */
+.highlight{
+  box-shadow:0 0 16px 7px rgba(255,198,132,.95)!important;
+  transform:translateY(-3px)scale(1.15)rotateX(12deg)rotateY(-15deg)!important;z-index:1
+}
+
+/* section titles */
+.subtitle{
+  color:#ffc684;font-size:.8rem;text-align:center;margin:.8rem 0 .25rem
+}
+
+/* ---------- ripple animation ---------- */
+@keyframes ripple-fade{
+  to{opacity:0;transform:scale(3);}
+}
+.elem::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(circle at var(--x) var(--y),var(--glow) 0%,transparent 70%);
+  opacity:0;transform:scale(0);
+}
+.elem:hover::after{
+  animation:ripple-fade .6s forwards;
+}
+
+/* --------- responsive fallback --------- */
+@media (max-width:900px){
+  #element-search{width:260px}
+  td{width:2.6rem;height:3.4rem}
+  .symbox{min-width:1.7rem}
+}
+</style>
+</head>
+<body>
+<div id="root">
+
+  <!-- search -->
+  <input id="element-search" placeholder="Search element (name or symbol)…">
+
+  <!-- block filters -->
+  <div class="block-buttons">
+    <button class="filter" onclick="filterBlock('s')">s-block</button>
+    <button class="filter" onclick="filterBlock('p')">p-block</button>
+    <button class="filter" onclick="filterBlock('d')">d-block</button>
+    <button class="filter" onclick="filterBlock('f')">f-block</button>
+    <button id="clear-btn" onclick="clearFilter()">clear</button>
+  </div>
+
+  <!-- main table -->
+  <div class="table-wrap"><table id="main"></table></div>
+
+  <div class="subtitle">Lanthanides</div>
+  <div class="table-wrap"><table id="lanth"></table></div>
+
+  <div class="subtitle">Actinides</div>
+  <div class="table-wrap"><table id="actin"></table></div>
+</div>
+
+<div id="tip"></div>
+
+<!-- ========================================================= -->
+<!--                       JAVASCRIPT                          -->
+<!-- ========================================================= -->
+<script>
+const $   = s=>document.querySelector(s);
+const tip = $('#tip');
+let currentBlock=null, mainTbl;
+
+/* simple metal / non-metal test */
+function isMetal(Z,g){
+  if((Z>=58&&Z<=71)||(Z>=90&&Z<=103))return true;
+  const semi=[13,31,32,49,50,51,81,82,83,84,113,114,115,116,117,118];
+  if(semi.includes(Z))return true;
+  if(Z===1||Z===2)return false;
+  return g<=12;
+}
+const blk=(Z,g)=>(Z>=58&&Z<=71)||(Z>=90&&Z<=103)?'f':(g===1||g===2||Z===2)?'s':(g>=13&&g<=18&&Z!==2)?'p':'d';
+
+/* full element data (same as before, abbreviated here) */
+const E=[
+/* Z sym name          mass   g  p  en    conf */
+{Z:1,  sym:'H',  name:'Hydrogen',      mass:'1.0',   g:1,  p:1, en:2.20, conf:'1s¹'},
+{Z:2,  sym:'He', name:'Helium',        mass:'4.0',   g:18, p:1, en:null, conf:'1s²'},
+{Z:3,  sym:'Li', name:'Lithium',       mass:'6.9',   g:1,  p:2, en:0.98, conf:'[He] 2s¹'},
+{Z:4,  sym:'Be', name:'Beryllium',     mass:'9.0',   g:2,  p:2, en:1.57, conf:'[He] 2s²'},
+{Z:5,  sym:'B',  name:'Boron',         mass:'10.8',  g:13, p:2, en:2.04, conf:'[He] 2s² 2p¹'},
+{Z:6,  sym:'C',  name:'Carbon',        mass:'12.0',  g:14, p:2, en:2.55, conf:'[He] 2s² 2p²'},
+{Z:7,  sym:'N',  name:'Nitrogen',      mass:'14.0',  g:15, p:2, en:3.04, conf:'[He] 2s² 2p³'},
+{Z:8,  sym:'O',  name:'Oxygen',        mass:'16.0',  g:16, p:2, en:3.44, conf:'[He] 2s² 2p⁴'},
+{Z:9,  sym:'F',  name:'Fluorine',      mass:'19.0',  g:17, p:2, en:3.98, conf:'[He] 2s² 2p⁵'},
+{Z:10, sym:'Ne', name:'Neon',          mass:'20.2',  g:18, p:2, en:null, conf:'[He] 2s² 2p⁶'},
+/* … (data unchanged – keep the rest exactly as in your current file) … */
+{Z:118,sym:'Og',name:'Oganesson',    mass:'294.0',g:18,p:7,en:null,conf:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶'}
+];
+
+/* build one tile */
+function tile(el){
+  const div=document.createElement('div');
+  const short=el.name.length>8?el.name.slice(0,4):el.name;
+  div.className=`elem ${isMetal(el.Z,el.g||0)?'metal':'nonmetal'}`;
+  div.dataset.block=blk(el.Z,el.g||0);
+  div.dataset.sym=el.sym.toLowerCase();
+  div.dataset.short=short.toLowerCase();
+  const clr=isMetal(el.Z,el.g||0)?'#ffc684':'#a2e8ff';
+  div.innerHTML=
+    `<div class="mass" style="color:${clr}">${el.mass}</div>
+     <div class="symbox">
+       <p class="symbol">${el.sym}</p>
+       <p class="name">${short}</p>
+     </div>
+     <div class="z">${el.Z}</div>`;
+  /* tooltip handlers */
+  div.onmouseover=e=>{
+    tip.innerHTML=`<b>${el.name}</b> (Z=${el.Z}, mass=${el.mass})<br>
+                   χ = ${el.en!=null?el.en:'—'}&nbsp;&nbsp;&nbsp;${el.conf}`;
+    tip.style.left=e.pageX+'px';
+    tip.style.top=e.pageY+'px';
+    tip.classList.add('show');
+  };
+  div.onmousemove=e=>{
+    tip.style.left=e.pageX+'px';
+    tip.style.top=e.pageY+'px';
+  };
+  div.onmouseout=()=>tip.classList.remove('show');
+  return div;
+}
+
+/* build the three tables */
+function buildTables(){
+  mainTbl=$('#main');
+  /* header row */
+  const hdr=document.createElement('tr');
+  hdr.appendChild(document.createElement('th'));
+  for(let g=1;g<=18;g++){
+    const th=document.createElement('th');
+    th.textContent={1:'I',2:'II',13:'III',14:'IV',15:'V',16:'VI',17:'VII',18:'VIII'}[g]||'';
+    th.className='group-header';
+    hdr.appendChild(th);
+  }
+  mainTbl.appendChild(hdr);
+
+  /* periods 1–7 */
+  for(let p=1;p<=7;p++){
+    const tr=document.createElement('tr');
+    const th=document.createElement('th');
+    th.textContent=p;
+    th.className='period-label';
+    tr.appendChild(th);
+    for(let g=1;g<=18;g++){
+      const td=document.createElement('td');
+      const el=E.find(e=>e.p===p&&e.g===g);
+      el ? td.appendChild(tile(el)) : td.className='empty';
+      tr.appendChild(td);
+    }
+    mainTbl.appendChild(tr);
+  }
+
+  /* Lanthanides & Actinides helper */
+  const buildRow=(start,id)=>{
+    const row=document.createElement('tr');
+    for(let z=start;z<start+14;z++){
+      const td=document.createElement('td');
+      td.appendChild(tile(E.find(e=>e.Z===z)));
+      row.appendChild(td);
+    }
+    $(id).appendChild(row);
+  };
+  buildRow(58,'#lanth');
+  buildRow(90,'#actin');
+}
+
+/* filtering & search */
+function setOpacity(v){
+  document.querySelectorAll('.elem').forEach(e=>e.style.opacity=v);
+}
+function filterBlock(b){
+  currentBlock=b;
+  applyFilter();
+}
+function clearFilter(){
+  currentBlock=null;setOpacity(1);
+}
+function applyFilter(){
+  setOpacity(.4);
+  document.querySelectorAll(`.elem[data-block="${currentBlock}"]`)
+          .forEach(e=>e.style.opacity='1');
+}
+
+/* kick-off */
+buildTables();
+
+/* mouse-tracking for ripple */
+document.querySelectorAll('.elem').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const r=e.currentTarget.getBoundingClientRect();
+    const x=((e.clientX-r.left)/r.width)*100;
+    const y=((e.clientY-r.top)/r.height)*100;
+    el.style.setProperty('--x',`${x}%`);
+    el.style.setProperty('--y',`${y}%`);
+  });
+});
+
+/* live search */
+$('#element-search').addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();
+  document.querySelectorAll('.elem').forEach(e=>{
+    e.classList.remove('highlight');
+    e.querySelector('.name').textContent=e.dataset.short;
+    e.style.opacity=currentBlock?(e.dataset.block===currentBlock?'1':'.4'):'1';
+  });
+  if(!q)return;
+  let first=null;
+  document.querySelectorAll('.elem').forEach(e=>{
+    const match=e.dataset.sym===q||e.dataset.short.startsWith(q);
+    if(match){
+      e.classList.add('highlight');
+      const el=E.find(x=>x.sym.toLowerCase()===e.dataset.sym);
+      e.querySelector('.name').textContent=el.name;
+      if(!first)first=e;
+    }else{
+      e.style.opacity='0.2';
+    }
+  });
+  first&&first.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+});
+</script>
+</body>
+</html>
